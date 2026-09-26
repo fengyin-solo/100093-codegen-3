@@ -33,3 +33,22 @@ body { margin: 0; background: #f6f8fb; color: #1f2937; }
 .link { border: none; background: none; color: var(--brand); cursor: pointer; padding: 0; }
 .page-foot { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--muted); }
 .error-text { color: #b42318; }
+.notice-text { color: #027a48; }
+/* 检定结论标签与临期/超期行高亮 */
+.tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; }
+.tag.ok { background: #ecfdf3; color: #027a48; }
+.tag.warn { background: #fffaeb; color: #b54708; }
+.tag.danger { background: #fef3f2; color: #b42318; }
+.tag.muted { background: #f2f4f7; color: var(--muted); }
+.row-due-soon td { background: #fffaeb; }
+.row-overdue td { background: #fef3f2; }
+.stat-card.warn .stat-value { color: #b54708; }
+.stat-card.danger .stat-value { color: #b42318; }
+/* 仪器详情面板 */
+.detail-panel { margin-top: 12px; background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.detail-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.detail-head h3 { margin: 0; font-size: 14px; }
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px 16px; margin: 0 0 8px; }
+.detail-item dt { font-size: 12px; color: var(--muted); }
+.detail-item dd { margin: 2px 0 0; font-size: 13px; }
+.detail-reason { font-size: 12px; color: var(--muted); margin: 4px 0 10px; }

@@ -10,13 +10,16 @@ from app.seed import SEED_ROWS
 
 
 class Store:
+    # 附属台账（如仪器检定记录）挂在业务模块下面，不作为独立业务模块出现在概览里
+    AUX_TABLES = {"instrument_calibration"}
+
     def __init__(self) -> None:
         self._tables: dict[str, list[dict[str, Any]]] = {
             name: [dict(row) for row in rows] for name, rows in SEED_ROWS.items()
         }
 
     def module_names(self) -> list[str]:
-        return sorted(self._tables)
+        return sorted(name for name in self._tables if name not in self.AUX_TABLES)
 
     def rows(self, module: str) -> list[dict[str, Any]]:
         return self._tables.setdefault(module, [])

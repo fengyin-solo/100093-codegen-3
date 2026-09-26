@@ -1,4 +1,8 @@
-"""仪器设备接口：维护仪器，覆盖办理检定、送修、停用仪器等动作。"""
+"""仪器设备接口：维护仪器，覆盖办理检定、送修、停用仪器等动作。
+
+检定判定口径都在 app.services.instrument 里：列表、详情、统计共用同一套结论，
+保存与动作接口只做传参，不写业务判断。
+"""
 from __future__ import annotations
 
 from typing import Any
@@ -30,9 +34,33 @@ def list_entries(
     return PageResult(items=items, total=total, page=page, size=size)
 
 
+@router.get("/summary")
+def summary() -> dict[str, Any]:
+    """按检定结论统计仪器数量：临近到期、已超期的台数在这里一目了然。"""
+    return service.summary()
+
+
+@router.post("/refresh", response_model=ActionResult)
+def refresh() -> ActionResult:
+    """按新口径把既有仪器数据重新标一遍，返回重标统计。"""
+    stats = service.refresh_statuses()
+    message = (
+        f"已按新口径重标：标为待检定 {stats['标为待检定']} 台、"
+        f"恢复正常 {stats['恢复正常']} 台、不参与判定 {stats['不参与判定']} 台"
+    )
+    return ActionResult(ok=True, message=message, entry=stats)
+
+
+@router.get("/export")
+def export_entries() -> dict[str, Any]:
+    """导出仪器设备清单：返回当前过滤条件下的全量数据。"""
+    items, total = service.list_entries(page=1, size=10000)
+    return {"module": "instrument", "total": total, "items": items}
+
+
 @router.get("/{entry_id}", response_model=dict)
 def get_entry(entry_id: int) -> dict:
-    """读取单条仪器明细；不存在时给出可读的错误说明。"""
+    """读取单条仪器明细（含检定结论与检定记录）；不存在时给出可读的错误说明。"""
     entry = service.get_entry(entry_id)
     if entry is None:
         raise HTTPException(status_code=404, detail=f"仪器 {entry_id} 不存在或已归档")
@@ -41,25 +69,18 @@ def get_entry(entry_id: int) -> dict:
 
 @router.post("", response_model=ActionResult)
 def create_entry(payload: EntryPayload) -> ActionResult:
-    """登记一条仪器，缺字段时说明原因而不是静默丢弃。"""
-    entry, missing = service.create_entry(payload.values)
-    if missing:
-        return ActionResult(ok=False, message=f"缺少必填字段：{'、'.join(missing)}")
+    """登记一条仪器；缺字段或检定日期口径不符时不保存，并说明原因。"""
+    entry, reasons = service.create_entry(payload.values)
+    if reasons:
+        return ActionResult(ok=False, message="；".join(reasons))
     return ActionResult(ok=True, message="仪器已登记", entry=entry)
 
 
 @router.post("/{entry_id}/actions", response_model=ActionResult)
 def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
-    """对单条仪器执行办理检定、送修、停用仪器；不允许的动作会被拦下并说明原因。"""
+    """对单条仪器执行办理检定、送修、停用仪器；超期或日期倒挂的会被拦下并说明原因。"""
     action = str(payload.values.get("action") or "").strip()
-    entry, message = service.run_action(entry_id, action)
+    entry, message = service.run_action(entry_id, action, payload.values)
     if entry is None:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
-
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出仪器设备清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "instrument", "total": total, "items": items}
