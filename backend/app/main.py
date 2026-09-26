@@ -5,14 +5,26 @@
 """
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routers import ROUTERS
+from app.services.instrument import InstrumentService
 from app.store import store
 
-app = FastAPI(title="实验室样品检测管理平台", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    # 检定判定规则上线：既有仪器数据在启动时按新口径重新标一遍
+    InstrumentService().refresh_due_status()
+    yield
+
+
+app = FastAPI(title="实验室样品检测管理平台", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
